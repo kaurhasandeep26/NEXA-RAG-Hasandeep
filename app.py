@@ -9,7 +9,7 @@ from src.config import settings
 from src.document_manager import DocumentManager
 from src.embeddings import EmbeddingService
 from src.ingestion import IngestionError
-from src.rag_chain import RAGChain
+from src.rag_chain import GeminiGenerationError, RAGChain
 from src.retriever import Retriever
 from src.utils import format_distance
 from src.vector_store import VectorStore
@@ -77,8 +77,8 @@ def main() -> None:
             st.write("A local-first Retrieval-Augmented Generation assistant that grounds answers in your uploaded knowledge.")
             st.caption("Built by Hasandeep Kaur")
 
-    if not settings.openai_api_key:
-        st.warning("Generation is not configured. Copy `.env.example` to `.env` and add `OPENAI_API_KEY`. You can still index and inspect retrieval results.")
+    if not settings.gemini_api_key:
+        st.warning("Gemini generation is not configured. Copy `.env.example` to `.env` and add `GEMINI_API_KEY`. You can still index and inspect retrieval results.")
     for message in st.session_state.messages:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
@@ -91,11 +91,14 @@ def main() -> None:
             with st.spinner("Searching your knowledge base…"):
                 try:
                     sources = retriever.search(question, top_k, st.session_state.messages[:-1])
-                    answer = RAGChain(settings.openai_api_key, settings.llm_model, settings.openai_base_url).answer(question, sources, st.session_state.messages[:-1])
+                    answer = RAGChain(settings.gemini_api_key, settings.gemini_model).answer(question, sources, st.session_state.messages[:-1])
                     st.markdown(answer); source_panel(sources)
+                except GeminiGenerationError as exc:
+                    answer = str(exc)
+                    st.error(answer); source_panel(sources)
                 except Exception as exc:
                     logging.exception("Question answering failed")
-                    answer, sources = f"I ran into a problem while answering: {exc}", []
+                    answer = "I ran into an unexpected problem while answering. Please try again."
                     st.error(answer)
         st.session_state.messages.append({"role": "assistant", "content": answer, "sources": sources})
     elif not documents:

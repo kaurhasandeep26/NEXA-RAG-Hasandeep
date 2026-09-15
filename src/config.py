@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,20 +19,34 @@ def _positive_int(name: str, default: int) -> int:
         return default
 
 
+def _streamlit_secret(name: str) -> str | None:
+    """Read a Streamlit Cloud secret without requiring Streamlit during tests."""
+    try:
+        import streamlit as st
+
+        value = st.secrets.get(name)
+        return str(value) if value else None
+    except Exception:
+        return None
+
+
+def _secret_or_env(name: str) -> str | None:
+    return os.getenv(name) or _streamlit_secret(name)
+
+
 @dataclass(frozen=True)
 class Settings:
     """Runtime settings. Values can be overridden in `.env`."""
 
     root_dir: Path = ROOT_DIR
-    chroma_path: Path = ROOT_DIR / os.getenv("NEXA_CHROMA_PATH", "vectorstore/chroma")
+    chroma_path: Path = field(default_factory=lambda: ROOT_DIR / os.getenv("NEXA_CHROMA_PATH", "vectorstore/chroma"))
     upload_path: Path = ROOT_DIR / "data/uploads"
-    embedding_model: str = os.getenv("NEXA_EMBEDDING_MODEL", "all-MiniLM-L6-v2")
-    llm_model: str = os.getenv("NEXA_LLM_MODEL", "gpt-4o-mini")
-    openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
-    openai_base_url: str | None = os.getenv("OPENAI_BASE_URL") or None
-    default_top_k: int = _positive_int("NEXA_TOP_K", 4)
-    default_chunk_size: int = _positive_int("NEXA_CHUNK_SIZE", 900)
-    default_chunk_overlap: int = _positive_int("NEXA_CHUNK_OVERLAP", 160)
+    embedding_model: str = field(default_factory=lambda: os.getenv("NEXA_EMBEDDING_MODEL", "all-MiniLM-L6-v2"))
+    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.6-flash"))
+    gemini_api_key: str | None = field(default_factory=lambda: _secret_or_env("GEMINI_API_KEY"))
+    default_top_k: int = field(default_factory=lambda: _positive_int("NEXA_TOP_K", 4))
+    default_chunk_size: int = field(default_factory=lambda: _positive_int("NEXA_CHUNK_SIZE", 900))
+    default_chunk_overlap: int = field(default_factory=lambda: _positive_int("NEXA_CHUNK_OVERLAP", 160))
 
     def ensure_directories(self) -> None:
         self.chroma_path.mkdir(parents=True, exist_ok=True)

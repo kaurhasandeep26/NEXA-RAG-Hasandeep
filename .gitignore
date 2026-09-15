@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .streamlit/secrets.toml
 __pycache__/
 *.py[cod]
@@ -17,3 +19,4 @@ vectorstore/chroma/*
 data/uploads/*
 !data/uploads/.gitkeep
 *.log
+*.tmp

@@ -9,7 +9,7 @@ NEXA-RAG turns a collection of PDFs, TXT files, and DOCX files into a searchable
 - Multi-document PDF, TXT, and DOCX ingestion with validation and text cleaning
 - Local persistent ChromaDB vector store with Sentence Transformers embeddings
 - Semantic, conversation-aware retrieval with adjustable top-k, chunk size, and overlap
-- Grounded OpenAI answers with source labels and retrieval/relevance details
+- Grounded Google Gemini answers with source labels and retrieval/relevance details
 - Duplicate protection using content hashes, per-document removal, safe re-indexing, and clear chat
 - Prompt-injection-aware system instructions: documents are treated as untrusted reference material
 - Modern Streamlit product interface, progress feedback, friendly errors, and local-first storage
@@ -25,7 +25,7 @@ The UI (`app.py`) is deliberately separated from ingestion, embeddings, storage,
 
 ## Technology stack
 
-Python · Streamlit · ChromaDB · Sentence Transformers · OpenAI API · PyMuPDF · python-docx · python-dotenv · pytest
+Python · Streamlit · ChromaDB · Sentence Transformers · Google Gemini API · PyMuPDF · python-docx · python-dotenv · pytest
 
 ## Project structure
 
@@ -56,11 +56,11 @@ NEXA-RAG/
    python -m pip install -r requirements.txt
    ```
 
-4. Copy `.env.example` to `.env`, then set your key:
+4. Create a Gemini API key in Google AI Studio. Copy `.env.example` to `.env`, then set your key:
 
    ```env
-   OPENAI_API_KEY=your_key_here
-   NEXA_LLM_MODEL=gpt-4o-mini
+   GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+   GEMINI_MODEL=gemini-2.5-flash
    ```
 
 5. Run it:
@@ -75,13 +75,23 @@ Open the local URL Streamlit prints, upload documents, click **Index selected do
 
 | Variable | Required | Purpose |
 |---|---:|---|
-| `OPENAI_API_KEY` | For generated answers | Key for an OpenAI-compatible chat API |
-| `OPENAI_BASE_URL` | No | Custom compatible API endpoint |
-| `NEXA_LLM_MODEL` | No | Defaults to `gpt-4o-mini` |
+| `GEMINI_API_KEY` | For generated answers | Gemini API key, loaded from `.env` or Streamlit secrets |
+| `GEMINI_MODEL` | No | Defaults to `gemini-2.5-flash` |
 | `NEXA_EMBEDDING_MODEL` | No | Defaults to `all-MiniLM-L6-v2` |
 | `NEXA_CHROMA_PATH` | No | Local persistent vector-store location |
 
 The first indexing run downloads the selected Sentence Transformers model. This is normal; afterward it is cached locally. Your documents and vectors remain on your computer. Do not commit `.env`, `data/uploads`, or `vectorstore/chroma`.
+
+### Streamlit Community Cloud
+
+In your deployed app, open **Settings → Secrets** and add the following (with your real key only in the secret manager):
+
+```toml
+GEMINI_API_KEY = "your-gemini-api-key"
+GEMINI_MODEL = "gemini-2.5-flash"
+```
+
+Never add this key to the repository. If the key is absent, NEXA-RAG still supports document indexing and retrieval, while generation shows a friendly configuration message.
 
 ## Testing
 
